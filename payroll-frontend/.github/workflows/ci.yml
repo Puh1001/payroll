@@ -1,0 +1,71 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "payroll-frontend/**"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "payroll-frontend/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: payroll-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd payroll-frontend
+          npm ci
+
+      - name: Run linter
+        run: |
+          cd payroll-frontend
+          npm run lint
+
+      - name: Run type check
+        run: |
+          cd payroll-frontend
+          npm run type-check
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: payroll-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd payroll-frontend
+          npm ci
+
+      - name: Build
+        run: |
+          cd payroll-frontend
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: payroll-frontend/.next

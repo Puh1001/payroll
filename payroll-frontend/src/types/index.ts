@@ -71,8 +71,9 @@ export interface IAttendanceForm {
 
 // API response types
 export interface ILoginResponse {
+  accessToken: string;
+  refreshToken: string;
   user: IUser;
-  token: string;
 }
 
 // Component props types

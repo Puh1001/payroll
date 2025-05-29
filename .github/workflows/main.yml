@@ -39,15 +39,49 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd /var/www/salaryApp
             git pull origin main
+
+            # Backend deployment
             cd payroll-backend
+            # Copy .env file if it doesn't exist
+            if [ ! -f .env ]; then
+              echo "Creating backend .env file..."
+              cat > .env << EOL
+              NODE_ENV=production
+              PORT=3001
+              DB_HOST=${{ secrets.DB_HOST }}
+              DB_PORT=${{ secrets.DB_PORT }}
+              DB_USERNAME=${{ secrets.DB_USERNAME }}
+              DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+              DB_DATABASE=${{ secrets.DB_DATABASE }}
+              JWT_SECRET=${{ secrets.JWT_SECRET }}
+              JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
+              REFRESH_SECRET=${{ secrets.REFRESH_SECRET }}
+              LDAP_URL=${{ secrets.LDAP_URL }}
+              LDAP_BIND_DN=${{ secrets.LDAP_BIND_DN }}
+              LDAP_BIND_CREDENTIALS=${{ secrets.LDAP_BIND_CREDENTIALS }}
+              LDAP_SEARCH_BASE=${{ secrets.LDAP_SEARCH_BASE }}
+              LDAP_SEARCH_FILTER=${{ secrets.LDAP_SEARCH_FILTER }}
+              EOL
+            fi
             npm ci
             npm run build
             pm2 restart payroll-backend || pm2 start npm --name "payroll-backend" -- start
+
+            # Frontend deployment
             cd ../payroll-frontend
+            # Copy .env.local file if it doesn't exist
+            if [ ! -f .env.local ]; then
+              echo "Creating frontend .env.local file..."
+              cat > .env.local << EOL
+              NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+              NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
+              NEXT_PUBLIC_JWT_EXPIRES_IN=${{ secrets.NEXT_PUBLIC_JWT_EXPIRES_IN }}
+              EOL
+            fi
             npm ci
             npm run build
             pm2 restart payroll-frontend || pm2 start npm --name "payroll-frontend" -- start

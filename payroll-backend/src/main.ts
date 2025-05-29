@@ -1,31 +1,11 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as helmet from 'helmet';
 import * as compression from 'compression';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // Enable CORS
-  app.enableCors();
-  // Enable security headers
-  app.use(helmet.default());
-
-  // Enable compression
-  app.use(compression());
-
-  // Enable validation
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
-
-  // Swagger documentation
+async function configureSwagger(app) {
   const config = new DocumentBuilder()
     .setTitle('Payroll API')
     .setDescription('The Payroll API description')
@@ -60,14 +40,62 @@ async function bootstrap() {
       },
     },
   });
+}
 
-  const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+async function configureApp(app) {
+  // Set global prefix
+  app.setGlobalPrefix('api/v1');
 
-  // Log server information
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(
-    `📚 Swagger documentation is available at: http://localhost:${port}/api`,
+  // Enable CORS with specific options
+  app.enableCors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:3000',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true,
+  });
+
+  // Enable security headers
+  app.use(helmet.default());
+
+  // Enable compression
+  app.use(compression());
+
+  // Enable validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
   );
 }
+
+async function bootstrap() {
+  const logger = new Logger('Bootstrap');
+
+  try {
+    const app = await NestFactory.create(AppModule, {
+      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    });
+
+    await configureApp(app);
+    await configureSwagger(app);
+
+    const port = process.env.PORT ?? 3000;
+    await app.listen(port);
+
+    logger.log(`🚀 Application is running on: http://localhost:${port}`);
+    logger.log(
+      `📚 Swagger documentation is available at: http://localhost:${port}/api`,
+    );
+  } catch (error) {
+    logger.error(`Error starting application: ${error.message}`, error.stack);
+    process.exit(1);
+  }
+}
+
 bootstrap();

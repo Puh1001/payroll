@@ -63,6 +63,8 @@ jobs:
         run: |
           cd payroll-frontend
           npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3

@@ -22,12 +22,18 @@ services:
     image: redis:7-alpine
     container_name: salary_redis
     restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis}
     ports:
       - '6379:6379'
     volumes:
       - redis_data:/data
     networks:
       - salary_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 3
 
 volumes:
   postgres_data:

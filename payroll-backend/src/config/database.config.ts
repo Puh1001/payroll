@@ -1,5 +1,6 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
 
 export const getDatabaseConfig = (
   configService: ConfigService,
@@ -10,11 +11,9 @@ export const getDatabaseConfig = (
   username: configService.get('DB_USERNAME'),
   password: configService.get('DB_PASSWORD'),
   database: configService.get('DB_DATABASE'),
-  entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+  entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
   synchronize: configService.get('NODE_ENV') !== 'production',
   logging: configService.get('NODE_ENV') !== 'production',
-  migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
-  migrationsRun: true,
   ssl:
     configService.get('NODE_ENV') === 'production'
       ? {
